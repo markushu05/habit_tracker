@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+    <h1>Habit Analyse</h1>
+
+    <h2>Alle Habits</h2>
+    <table>
+        <tr><th>ID</th><th>Name</th><th>Periode</th></tr>
+        {% for h in habits %}
+        <tr><td>{{ h.id }}</td><td>{{ h.name }}</td><td>{{ h.periodicity }}</td></tr>
+        {% endfor %}
+    </table>
+
+    <h2>Tägliche Habits</h2>
+    <ul>
+        {% for h in daily_habits %}
+        <li>{{ h.name }}</li>
+        {% else %}
+        <li>Keine täglichen Habits vorhanden</li>
+        {% endfor %}
+    </ul>
+
+    <h2>Wöchentliche Habits</h2>
+    <ul>
+        {% for h in weekly_habits %}
+        <li>{{ h.name }}</li>
+        {% else %}
+        <li>Keine wöchentlichen Habits vorhanden</li>
+        {% endfor %}
+    </ul>
+
+    <h2>Längste Streak</h2>
+    {% if longest_habit %}
+        <p><b>{{ longest_habit }}</b> – {{ longest_streak }} Perioden in Folge</p>
+    {% else %}
+        <p>Noch keine Streaks vorhanden.</p>
+    {% endif %}
+{% endblock %}

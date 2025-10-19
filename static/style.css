@@ -1,0 +1,31 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background: #fafafa;
+  }
+  
+  nav {
+    margin-bottom: 20px;
+  }
+  
+  nav a {
+    margin-right: 15px;
+    text-decoration: none;
+    color: #0077cc;
+  }
+  
+  table {
+    border-collapse: collapse;
+    width: 80%;
+  }
+  
+  th, td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: left;
+  }
+  
+  button {
+    padding: 8px 12px;
+  }
+  

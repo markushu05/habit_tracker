@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Alle Habits</h1>
+
+<table id="habitTable" border="1">
+  <thead>
+    <tr>
+      <th onclick="sortTable(0)">Name ⬍</th>
+      <th onclick="sortTable(1)">Periodizität ⬍</th>
+      <th>Details</th>
+      <th onclick="sortTable(3)">Fällig ⬍</th>
+      <th onclick="sortTable(4)">Status ⬍</th>
+      <th onclick="sortTable(5)">Streak ⬍</th>
+      <th>Aktionen</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for h in habits %}
+    <tr>
+      <td>{{ h["name"] }}</td>
+      <td>{{ h["periodicity"] }}</td>
+      <td><a href="{{ url_for('habit_detail', habit_id=h['id']) }}">🔍 Details</a></td>
+      <td>{{ h["due_date"] }}</td>
+      <td>
+        {% if h["completed"] %}
+          ✅ Eingehalten
+        {% else %}
+          ❌ Gebrochen
+        {% endif %}
+      </td>
+      <td>{{ h["current_streak"] }}</td>
+      <td>
+        <a href="{{ url_for('complete', habit_id=h['id']) }}">✅ Erledigt</a>
+        <a href="{{ url_for('delete_habit_route', habit_id=h['id']) }}">🗑️ Löschen</a>
+        <a href="{{ url_for('edit_habit', habit_id=h['id']) }}">✏️ Bearbeiten</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<script>
+console.log("Sortierfunktion geladen!");
+
+function sortTable(columnIndex) {
+  console.log("Sortiere Spalte:", columnIndex);
+  const table = document.getElementById("habitTable");
+  const tbody = table.tBodies[0];
+  const rows = Array.from(tbody.rows);
+
+  // Prüfen, ob bereits sortiert wurde → Richtung umkehren
+  const currentSorted = table.getAttribute("data-sorted-column");
+  const currentDirection = table.getAttribute("data-sort-direction");
+  let direction = "asc";
+
+  if (currentSorted == columnIndex.toString() && currentDirection === "asc") {
+    direction = "desc";
+  }
+
+  // Speichern, welche Spalte & Richtung aktuell aktiv ist
+  table.setAttribute("data-sorted-column", columnIndex);
+  table.setAttribute("data-sort-direction", direction);
+
+  // Hilfsfunktion: Datentyp erkennen
+  function parseValue(val) {
+    if (!val) return "";
+    val = val.trim();
+
+    // ✅ Emojis in Zahlen umwandeln (für Status-Spalte)
+    if (val.includes("✅")) return 1;
+    if (val.includes("❌")) return 0;
+
+    // ⏰ Datumswerte erkennen
+    const date = Date.parse(val);
+    if (!isNaN(date)) return date;
+
+    // 🔢 Zahlen erkennen
+    if (!isNaN(val)) return parseFloat(val);
+
+    // 🔤 Sonst Text (kleingeschrieben)
+    return val.toLowerCase();
+  }
+
+  rows.sort((a, b) => {
+    const x = a.cells[columnIndex]?.textContent || "";
+    const y = b.cells[columnIndex]?.textContent || "";
+    const xVal = parseValue(x);
+    const yVal = parseValue(y);
+
+    if (xVal < yVal) return direction === "asc" ? -1 : 1;
+    if (xVal > yVal) return direction === "asc" ? 1 : -1;
+    return 0;
+  });
+
+  // Alte Zeilen löschen & neue einfügen
+  tbody.innerHTML = "";
+  rows.forEach(row => tbody.appendChild(row));
+}
+</script>
+
+{% endblock %}

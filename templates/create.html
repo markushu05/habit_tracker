@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Neues Habit erstellen</h1>
+<form method="POST">
+    <label for="name">Habit-Name:</label><br>
+    <input type="text" name="name" required><br><br>
+
+    <label for="periodicity">Periode:</label><br>
+    <select name="periodicity" required>
+        <option value="daily">Täglich</option>
+        <option value="weekly">Wöchentlich</option>
+        <option value="monthly">Monatlich</option>
+        <option value="yearly">Jährlich</option>
+    </select><br><br>
+
+    <label for="selected_dates">Wähle Tage im Kalender:</label><br>
+    <input type="text" id="selected_dates" name="selected_dates" placeholder="Tage auswählen..." readonly><br><br>
+
+    <input type="submit" value="Erstellen">
+</form>
+
+<script>
+flatpickr("#selected_dates", {
+    mode: "multiple",          // mehrere Tage auswählbar
+    dateFormat: "Y-m-d",       // ISO-Format für Python
+    minDate: "today",          // keine Tage in der Vergangenheit
+    locale: "de"               // deutsche Monats- und Wochennamen
+});
+</script>
+{% endblock %}

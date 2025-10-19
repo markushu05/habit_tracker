@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Habit Tracker</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+</head>
+<body>
+  <nav>
+    <a href="{{ url_for('index') }}">🏠 Übersicht</a>
+    <a href="{{ url_for('create') }}">➕ Neuer Habit</a>
+    <a href="{{ url_for('analysis') }}">Analyse anzeigen</a>
+  </nav>
+  <div class="container">
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>
