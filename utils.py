@@ -1,84 +1,104 @@
 # utils.py
 from datetime import datetime, timedelta
-import json
+import calendar
+
+def _to_date_list(active_days):
+    """Konvertiert active_days (JSON-Liste oder Liste von Strings) zu date-Objekten."""
+    out = []
+    for d in active_days or []:
+        if isinstance(d, str):
+            try:
+                out.append(datetime.strptime(d, "%Y-%m-%d").date())
+            except Exception:
+                continue
+        else:
+            out.append(d)  # falls schon date
+    return sorted(out)
 
 def calculate_next_due_date(habit):
     """
-    Berechnet das nächste Fälligkeitsdatum basierend auf Periodizität und aktivierten Tagen.
-    habit: dict mit keys 'periodicity' (daily, weekly, monthly, yearly) und 'active_days' (Liste von Datumsstrings)
+    habit: dict mit keys:
+      - 'periodicity': 'daily'|'weekly'|'monthly'|'yearly'
+      - 'active_days': Liste von 'YYYY-MM-DD' strings (aus dem Kalender), oder [].
+    Liefert ISO-Datum (YYYY-MM-DD) für das nächste Fälligkeitsdatum (>= heute),
+    oder None, falls nicht berechenbar.
     """
     today = datetime.now().date()
-    periodicity = habit.get("periodicity", "daily")
-    active_days = habit.get("active_days", [])
+    periodicity = (habit.get("periodicity") or "daily")
+    active_days = habit.get("active_days") or []
 
-    # Wenn keine aktiven Tage angegeben, Fälligkeit auf heute setzen
-    if not active_days:
-        return today.isoformat()
+    dates = _to_date_list(active_days)
 
-    # Konvertiere Strings in date-Objekte
-    dates = []
-    for d in active_days:
-        try:
-            dt = datetime.strptime(d, "%Y-%m-%d").date()
-            dates.append(dt)
-        except ValueError:
-            continue
+    # 1) wenn konkrete future-dates vorhanden -> das früheste ≥ today zurückgeben
+    future = [d for d in dates if d >= today]
+    if future:
+        return future[0].isoformat()
 
-    # sortiere aufsteigend
-    dates.sort()
+    # 2) sonst: baue das nächste Datum basierend auf Periodizität
+    # wenn keine konkreten active_days vorhanden -> fallback je Periodizität
+    if not dates:
+        # kein konkreter Tag gewählt -> use periodicity defaults
+        if periodicity == "daily":
+            return today.isoformat()
+        elif periodicity == "weekly":
+            return (today + timedelta(days=7 - today.weekday())).isoformat()  # nächster Sonntag-ähnlich fallback
+        elif periodicity == "monthly":
+            # nächster Monat, gleicher Tag (oder letzter Tag, falls nicht vorhanden)
+            day = today.day
+            month = today.month + 1 if today.month < 12 else 1
+            year = today.year + (1 if month == 1 else 0)
+            last_day = calendar.monthrange(year, month)[1]
+            day = min(day, last_day)
+            return datetime(year, month, day).date().isoformat()
+        elif periodicity == "yearly":
+            try:
+                return datetime(today.year, today.month, today.day).date().isoformat()
+            except Exception:
+                return datetime(today.year + 1, today.month, today.day).date().isoformat()
+
+    # 3) es gibt nur vergangene konkrete dates -> erweitere den letzten Eintrag periodisch,
+    # bis ein Datum >= today entsteht
+    last = dates[-1]
+    next_date = last
 
     if periodicity == "daily":
-        # bei daily: nächster Tag nach heute, mindestens heute
-        next_due = max(today, dates[0])
-        return next_due.isoformat()
+        # nächster Tag nach last, wiederholend bis >= today
+        while next_date < today:
+            next_date = next_date + timedelta(days=1)
+        return next_date.isoformat()
 
-    elif periodicity == "weekly":
-        # nächste Woche auswählen, gleiche Wochentage wie in active_days
-        weekdays = [d.weekday() for d in dates]  # 0=Mo,6=So
-        today_weekday = today.weekday()
-        # nächster passender Wochentag
-        for i in range(7):
-            candidate = today + timedelta(days=i)
-            if candidate.weekday() in weekdays:
-                return candidate.isoformat()
-        # fallback
-        return (today + timedelta(days=7)).isoformat()
+    if periodicity == "weekly":
+        # add 7 days wiederholt
+        while next_date < today:
+            next_date = next_date + timedelta(weeks=1)
+        return next_date.isoformat()
 
-    elif periodicity == "monthly":
-        # nimm den nächsten Tag im Monat aus active_days oder gleichen Tag nächsten Monat
-        day_nums = [d.day for d in dates]
-        today_day = today.day
-        next_days = [day for day in day_nums if day >= today_day]
-        if next_days:
-            next_due = today.replace(day=next_days[0])
-        else:
-            # nächsten Monat
-            month = today.month + 1 if today.month < 12 else 1
-            year = today.year + 1 if month == 1 else today.year
-            day = day_nums[0]
-            # prüfen, ob Tag im Monat existiert
+    if periodicity == "monthly":
+        # add months until >= today
+        y, m = last.year, last.month
+        day = last.day
+        while next_date < today:
+            m += 1
+            if m > 12:
+                m = 1
+                y += 1
+            last_day = calendar.monthrange(y, m)[1]
+            d = min(day, last_day)
+            next_date = datetime(y, m, d).date()
+        return next_date.isoformat()
+
+    if periodicity == "yearly":
+        y = last.year
+        month = last.month
+        day = last.day
+        while next_date < today:
+            y += 1
             try:
-                next_due = datetime(year, month, day).date()
+                next_date = datetime(y, month, day).date()
             except ValueError:
-                # falls Tag zu groß für Monat, nimm letzten Tag im Monat
-                from calendar import monthrange
-                last_day = monthrange(year, month)[1]
-                next_due = datetime(year, month, last_day).date()
-        return next_due.isoformat()
-
-    elif periodicity == "yearly":
-        # nächster Fälligkeitstag im Jahr
-        month_days = [(d.month, d.day) for d in dates]
-        for month, day in month_days:
-            try:
-                candidate = datetime(today.year, month, day).date()
-            except ValueError:
-                continue
-            if candidate >= today:
-                return candidate.isoformat()
-        # nächstes Jahr
-        month, day = month_days[0]
-        return datetime(today.year + 1, month, day).date().isoformat()
+                # fallback, falls 29. Feb etc.
+                next_date = datetime(y, month, min(day, 28)).date()
+        return next_date.isoformat()
 
     # fallback
     return today.isoformat()

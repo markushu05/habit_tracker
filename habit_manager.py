@@ -57,18 +57,27 @@ class HabitManager:
         c = conn.cursor()
         completed_at = datetime.now().isoformat()
 
-        # Habit aus DB laden
+        # Hole komplettes Habit (inkl. periodicity + active_days)
         c.execute("SELECT * FROM habits WHERE id = ?", (habit_id,))
-        habit_row = c.fetchone()
-        habit = Habit.from_row(habit_row)
+        row = c.fetchone()
+        if not row:
+            conn.close()
+            return
 
-        habit_dict = {"periodicity": habit.periodicity, "active_days": habit.active_days}
+        habit = Habit.from_row(row)
+        # build habit_dict für utils
+        habit_dict = {
+            "periodicity": habit.periodicity,
+            # ensure active_days is list of date-strings
+            "active_days": habit.active_days or []
+        }
         new_due_date = calculate_next_due_date(habit_dict)
 
         c.execute("INSERT INTO completions (habit_id, completed_at) VALUES (?, ?)", (habit_id, completed_at))
         c.execute("UPDATE habits SET completed = 1, due_date = ? WHERE id = ?", (new_due_date, habit_id))
         conn.commit()
         conn.close()
+
 
     def mark_habit_broken(self, habit_id):
         conn = get_connection()
@@ -86,19 +95,47 @@ class HabitManager:
 
         for row in rows:
             habit = Habit.from_row(row)
-            if not habit.due_date:
-                continue
+            # active_days in habit.active_days sollte schon als Liste verfügbar sein
+            # falls nicht, ensure:
+            if isinstance(habit.active_days, str):
+                try:
+                    active_list = json.loads(habit.active_days)
+                except Exception:
+                    active_list = []
+            else:
+                active_list = habit.active_days or []
 
-            due = datetime.fromisoformat(habit.due_date).date()
-            if due < today and habit.completed == 0:
-                self.mark_habit_broken(habit.id)
-            elif due < today and habit.completed == 1:
-                habit_dict = {"periodicity": habit.periodicity, "active_days": habit.active_days}
-                new_due_date = calculate_next_due_date(habit_dict)
-                c.execute("UPDATE habits SET completed = 0, due_date = ? WHERE id = ?", (new_due_date, habit.id))
+            # berechne das nächste due_date IMMER (auch wenn aktuelles due_date in Zukunft ist,
+            # aber wir können nur neu berechnen wenn current due_date < today)
+            current_due = None
+            if habit.due_date:
+                try:
+                    current_due = datetime.fromisoformat(habit.due_date).date()
+                except Exception:
+                    current_due = None
+
+            # Wenn kein due_date oder due_date in der Vergangenheit -> berechne das nächste Datum
+            if current_due is None or current_due < today:
+                habit_dict = {"periodicity": habit.periodicity, "active_days": active_list}
+                next_due = calculate_next_due_date(habit_dict)
+                # Wenn current_due ist None (nie gesetzt) -> setze due und leave status as is (oder offen).
+                # Wenn current_due < today:
+                if current_due is None:
+                    # setze next_due, leave status unverändert (oder falls du willst, setze auf offen)
+                    c.execute("UPDATE habits SET due_date = ? WHERE id = ?", (next_due, habit.id))
+                else:
+                    # current_due < today (Termin verpasst)
+                    if habit.completed == 1:
+                        # war als erfüllt markiert für den alten Zyklus -> neuer Zyklus starten (offen)
+                        c.execute("UPDATE habits SET completed = 0, due_date = ? WHERE id = ?", (next_due, habit.id))
+                    else:
+                        # nicht erledigt -> markiere gebrochen UND setze neues due_date (nächster Zyklus)
+                        c.execute("UPDATE habits SET completed = 2, due_date = ? WHERE id = ?", (next_due, habit.id))
 
         conn.commit()
         conn.close()
+
+
 
     # --- Abfragen ---
     def get_all_habits(self):
