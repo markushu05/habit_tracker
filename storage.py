@@ -9,7 +9,7 @@ def get_connection():
     return conn
 
 def init_db():
-    """Erstellt Tabellen, falls sie nicht existieren."""
+    """Creates tables if they do not exist."""
     conn = get_connection()
     c = conn.cursor()
 

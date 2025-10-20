@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import calendar
 
 def _to_date_list(active_days):
-    """Konvertiert active_days (JSON-Liste oder Liste von Strings) zu date-Objekten."""
+    """Converts active_days (JSON list or list of strings) to date objects."""
     out = []
     for d in active_days or []:
         if isinstance(d, str):
@@ -12,16 +12,16 @@ def _to_date_list(active_days):
             except Exception:
                 continue
         else:
-            out.append(d)  # falls schon date
+            out.append(d)  # if already a date
     return sorted(out)
 
 def calculate_next_due_date(habit):
     """
-    habit: dict mit keys:
+    habit: dict with keys:
       - 'periodicity': 'daily'|'weekly'|'monthly'|'yearly'
-      - 'active_days': Liste von 'YYYY-MM-DD' strings (aus dem Kalender), oder [].
-    Liefert ISO-Datum (YYYY-MM-DD) für das nächste Fälligkeitsdatum (>= heute),
-    oder None, falls nicht berechenbar.
+      - 'active_days': list of 'YYYY-MM-DD' strings (from calendar), or [].
+    Returns ISO date (YYYY-MM-DD) for the next due date (>= today),
+    or None if not computable.
     """
     today = datetime.now().date()
     periodicity = (habit.get("periodicity") or "daily")
@@ -29,21 +29,19 @@ def calculate_next_due_date(habit):
 
     dates = _to_date_list(active_days)
 
-    # 1) wenn konkrete future-dates vorhanden -> das früheste ≥ today zurückgeben
+    # 1) if concrete future dates exist -> return earliest >= today
     future = [d for d in dates if d >= today]
     if future:
         return future[0].isoformat()
 
-    # 2) sonst: baue das nächste Datum basierend auf Periodizität
-    # wenn keine konkreten active_days vorhanden -> fallback je Periodizität
+    # 2) otherwise: calculate next date based on periodicity
+    # if no concrete active_days -> fallback per periodicity
     if not dates:
-        # kein konkreter Tag gewählt -> use periodicity defaults
         if periodicity == "daily":
             return today.isoformat()
         elif periodicity == "weekly":
-            return (today + timedelta(days=7 - today.weekday())).isoformat()  # nächster Sonntag-ähnlich fallback
+            return (today + timedelta(days=7 - today.weekday())).isoformat()  # next Sunday-like fallback
         elif periodicity == "monthly":
-            # nächster Monat, gleicher Tag (oder letzter Tag, falls nicht vorhanden)
             day = today.day
             month = today.month + 1 if today.month < 12 else 1
             year = today.year + (1 if month == 1 else 0)
@@ -56,25 +54,21 @@ def calculate_next_due_date(habit):
             except Exception:
                 return datetime(today.year + 1, today.month, today.day).date().isoformat()
 
-    # 3) es gibt nur vergangene konkrete dates -> erweitere den letzten Eintrag periodisch,
-    # bis ein Datum >= today entsteht
+    # 3) only past concrete dates exist -> extend last entry periodically until >= today
     last = dates[-1]
     next_date = last
 
     if periodicity == "daily":
-        # nächster Tag nach last, wiederholend bis >= today
         while next_date < today:
             next_date = next_date + timedelta(days=1)
         return next_date.isoformat()
 
     if periodicity == "weekly":
-        # add 7 days wiederholt
         while next_date < today:
             next_date = next_date + timedelta(weeks=1)
         return next_date.isoformat()
 
     if periodicity == "monthly":
-        # add months until >= today
         y, m = last.year, last.month
         day = last.day
         while next_date < today:
@@ -96,7 +90,6 @@ def calculate_next_due_date(habit):
             try:
                 next_date = datetime(y, month, day).date()
             except ValueError:
-                # fallback, falls 29. Feb etc.
                 next_date = datetime(y, month, min(day, 28)).date()
         return next_date.isoformat()
 

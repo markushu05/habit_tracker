@@ -1,30 +1,30 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Neues Habit erstellen</h1>
+<h1>Create New Habit</h1>
 <form method="POST">
-    <label for="name">Habit-Name:</label><br>
+    <label for="name">Habit Name:</label><br>
     <input type="text" name="name" required><br><br>
 
-    <label for="periodicity">Periode:</label><br>
+    <label for="periodicity">Period:</label><br>
     <select name="periodicity" required>
-        <option value="daily">Täglich</option>
-        <option value="weekly">Wöchentlich</option>
-        <option value="monthly">Monatlich</option>
-        <option value="yearly">Jährlich</option>
+        <option value="daily">Daily</option>
+        <option value="weekly">Weekly</option>
+        <option value="monthly">Monthly</option>
+        <option value="yearly">Yearly</option>
     </select><br><br>
 
-    <label for="selected_dates">Wähle Tage im Kalender:</label><br>
-    <input type="text" id="selected_dates" name="selected_dates" placeholder="Tage auswählen..." readonly><br><br>
+    <label for="selected_dates">Choose days in the calendar:</label><br>
+    <input type="text" id="selected_dates" name="selected_dates" placeholder="Choose days..." readonly><br><br>
 
-    <input type="submit" value="Erstellen">
+    <input type="submit" value="Create">
 </form>
 
 <script>
 flatpickr("#selected_dates", {
-    mode: "multiple",          // mehrere Tage auswählbar
-    dateFormat: "Y-m-d",       // ISO-Format für Python
-    minDate: "today",          // keine Tage in der Vergangenheit
-    locale: "de"               // deutsche Monats- und Wochennamen
+    mode: "multiple",          // choose multiple dates
+    dateFormat: "Y-m-d",       // ISO format for python
+    minDate: "today",          // no past dates
+    locale: "en"               
 });
 </script>
 {% endblock %}

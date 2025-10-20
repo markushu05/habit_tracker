@@ -5,7 +5,7 @@ from datetime import datetime
 
 class Habit:
     """
-    Repräsentiert eine Gewohnheit in der Datenbank.
+    Represents a habit in the database.
     """
     def __init__(self, id, name, periodicity, created_at, start_date=None, due_date=None, active_days=None, completed=0):
         self.id = id
@@ -19,16 +19,16 @@ class Habit:
 
     @classmethod
     def from_row(cls, row):
-        """Erzeugt ein Habit-Objekt aus einem DB-Row."""
+        """Creates a Habit object from a database row."""
         return cls(**dict(row))
 
     def mark_complete(self):
-        """Markiert dieses Habit als erledigt."""
+        """Marks this habit as completed."""
         from habit_manager import HabitManager
         HabitManager().mark_habit_complete(self.id)
 
     def mark_broken(self):
-        """Markiert dieses Habit als gebrochen."""
+        """Marks this habit as broken."""
         from habit_manager import HabitManager
         HabitManager().mark_habit_broken(self.id)
 

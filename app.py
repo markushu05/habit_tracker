@@ -3,11 +3,15 @@ import json
 from habit_manager import HabitManager
 
 app = Flask(__name__)
-manager = HabitManager()  # Ein Manager für alle Operationen
+manager = HabitManager()  # Manager for all habit operations
 
 @app.route("/")
 def index():
-    # überprüft beim Aufruf der Startseite, ob Habits gebrochen oder Zyklus erneuert werden müssen
+    """
+    Home page: displays all habits.
+    Checks and updates habit statuses (broken, renewed) on each visit.
+    Updates the current streak for each habit.
+    """
     manager.update_habit_statuses()
     habits = manager.get_all_habits()
     for h in habits:
@@ -16,6 +20,11 @@ def index():
 
 @app.route("/create", methods=["GET", "POST"])
 def create():
+    """
+    Create a new habit.
+    GET: display the creation form.
+    POST: process form data and add the new habit.
+    """
     if request.method == "POST":
         name = request.form["name"]
         periodicity = request.form["periodicity"]
@@ -29,6 +38,9 @@ def create():
 
 @app.route("/complete/<int:habit_id>")
 def complete(habit_id):
+    """
+    Mark a habit as completed for today.
+    """
     habit = manager.get_habit_by_id(habit_id)
     if habit:
         habit.mark_complete()
@@ -36,6 +48,9 @@ def complete(habit_id):
 
 @app.route("/uncomplete/<int:habit_id>")
 def uncomplete(habit_id):
+    """
+    Mark a habit as broken (uncompleted) for today.
+    """
     habit = manager.get_habit_by_id(habit_id)
     if habit:
         habit.mark_broken()
@@ -43,14 +58,22 @@ def uncomplete(habit_id):
 
 @app.route("/delete/<int:habit_id>")
 def delete_habit_route(habit_id):
+    """
+    Delete a habit by its ID.
+    """
     manager.delete_habit(habit_id)
     return redirect(url_for("index"))
 
 @app.route("/edit/<int:habit_id>", methods=["GET", "POST"])
 def edit_habit(habit_id):
+    """
+    Edit an existing habit.
+    GET: display the edit form with current habit data.
+    POST: update habit with new name, periodicity, and active dates.
+    """
     habit = manager.get_habit_by_id(habit_id)
     if habit is None:
-        return "Habit nicht gefunden", 404
+        return "Habit not found", 404
 
     if request.method == "POST":
         name = request.form["name"]
@@ -64,9 +87,13 @@ def edit_habit(habit_id):
 
 @app.route("/habit/<int:habit_id>")
 def habit_detail(habit_id):
+    """
+    Display detailed information about a single habit,
+    including planned days and completion history.
+    """
     habit = manager.get_habit_by_id(habit_id)
     if not habit:
-        return "Habit nicht gefunden", 404
+        return "Habit not found", 404
 
     selected_dates = habit.active_days if habit.active_days else []
     completions = manager.get_completions(habit_id)
@@ -74,6 +101,10 @@ def habit_detail(habit_id):
 
 @app.route("/analysis")
 def analysis():
+    """
+    Show analysis of all habits.
+    Breaks down habits by periodicity and finds the habit with the longest streak.
+    """
     habits = manager.get_all_habits()
     daily_habits = manager.get_habits_by_periodicity("daily")
     weekly_habits = manager.get_habits_by_periodicity("weekly")
@@ -94,6 +125,6 @@ def analysis():
 
 if __name__ == "__main__":
     from storage import init_db
-    init_db()
-    manager.update_habit_statuses()
+    init_db()  # Initialize the database
+    manager.update_habit_statuses()  # Ensure statuses are up to date on startup
     app.run(debug=True)

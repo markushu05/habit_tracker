@@ -6,7 +6,7 @@ from utils import calculate_next_due_date
 from habit import Habit
 
 class HabitManager:
-    """Kapselt alle CRUD- und Logikfunktionen für Habits."""
+    """Encapsulates all CRUD and logic functions for habits."""
 
     # --- CRUD ---
     def add_habit(self, name, periodicity, date_list):
@@ -57,7 +57,6 @@ class HabitManager:
         c = conn.cursor()
         completed_at = datetime.now().isoformat()
 
-        # Hole komplettes Habit (inkl. periodicity + active_days)
         c.execute("SELECT * FROM habits WHERE id = ?", (habit_id,))
         row = c.fetchone()
         if not row:
@@ -65,10 +64,8 @@ class HabitManager:
             return
 
         habit = Habit.from_row(row)
-        # build habit_dict für utils
         habit_dict = {
             "periodicity": habit.periodicity,
-            # ensure active_days is list of date-strings
             "active_days": habit.active_days or []
         }
         new_due_date = calculate_next_due_date(habit_dict)
@@ -77,7 +74,6 @@ class HabitManager:
         c.execute("UPDATE habits SET completed = 1, due_date = ? WHERE id = ?", (new_due_date, habit_id))
         conn.commit()
         conn.close()
-
 
     def mark_habit_broken(self, habit_id):
         conn = get_connection()
@@ -95,8 +91,6 @@ class HabitManager:
 
         for row in rows:
             habit = Habit.from_row(row)
-            # active_days in habit.active_days sollte schon als Liste verfügbar sein
-            # falls nicht, ensure:
             if isinstance(habit.active_days, str):
                 try:
                     active_list = json.loads(habit.active_days)
@@ -105,8 +99,6 @@ class HabitManager:
             else:
                 active_list = habit.active_days or []
 
-            # berechne das nächste due_date IMMER (auch wenn aktuelles due_date in Zukunft ist,
-            # aber wir können nur neu berechnen wenn current due_date < today)
             current_due = None
             if habit.due_date:
                 try:
@@ -114,30 +106,21 @@ class HabitManager:
                 except Exception:
                     current_due = None
 
-            # Wenn kein due_date oder due_date in der Vergangenheit -> berechne das nächste Datum
             if current_due is None or current_due < today:
                 habit_dict = {"periodicity": habit.periodicity, "active_days": active_list}
                 next_due = calculate_next_due_date(habit_dict)
-                # Wenn current_due ist None (nie gesetzt) -> setze due und leave status as is (oder offen).
-                # Wenn current_due < today:
                 if current_due is None:
-                    # setze next_due, leave status unverändert (oder falls du willst, setze auf offen)
                     c.execute("UPDATE habits SET due_date = ? WHERE id = ?", (next_due, habit.id))
                 else:
-                    # current_due < today (Termin verpasst)
                     if habit.completed == 1:
-                        # war als erfüllt markiert für den alten Zyklus -> neuer Zyklus starten (offen)
                         c.execute("UPDATE habits SET completed = 0, due_date = ? WHERE id = ?", (next_due, habit.id))
                     else:
-                        # nicht erledigt -> markiere gebrochen UND setze neues due_date (nächster Zyklus)
                         c.execute("UPDATE habits SET completed = 2, due_date = ? WHERE id = ?", (next_due, habit.id))
 
         conn.commit()
         conn.close()
 
-
-
-    # --- Abfragen ---
+    # --- Queries ---
     def get_all_habits(self):
         conn = get_connection()
         c = conn.cursor()
@@ -209,7 +192,7 @@ class HabitManager:
 
     def get_streak(self, habit_id):
         """
-        Gibt den aktuellen Streak (aufeinanderfolgende erfolgreiche Perioden bis heute) zurück.
+        Returns the current streak (consecutive successful periods up to today).
         """
         completions = self.get_completions(habit_id)
         if not completions:
@@ -225,21 +208,19 @@ class HabitManager:
         for i in range(len(dates) - 1, 0, -1):
             diff = (dates[i] - dates[i - 1]).days
 
-            # Prüfe, ob die Abstände zur Periodizität passen
             if (period == "daily" and diff == 1) or \
-            (period == "weekly" and diff <= 7) or \
-            (period == "monthly" and diff <= 31) or \
-            (period == "yearly" and diff <= 366):
+               (period == "weekly" and diff <= 7) or \
+               (period == "monthly" and diff <= 31) or \
+               (period == "yearly" and diff <= 366):
                 current_streak += 1
             else:
                 break
 
-        # Wenn der letzte Completion-Eintrag zu weit zurückliegt, Streak = 0
         last_completion = dates[-1]
         if (period == "daily" and (today - last_completion).days > 1) or \
-        (period == "weekly" and (today - last_completion).days > 7) or \
-        (period == "monthly" and (today - last_completion).days > 31) or \
-        (period == "yearly" and (today - last_completion).days > 366):
+           (period == "weekly" and (today - last_completion).days > 7) or \
+           (period == "monthly" and (today - last_completion).days > 31) or \
+           (period == "yearly" and (today - last_completion).days > 366):
             return 0
 
         return current_streak

@@ -1,32 +1,35 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Details zu "{{ habit.name }}"</h1>
+<h1>Details for "{{ habit.name }}"</h1>
 
 <div class="habit-info">
-    <p><strong>Periodizität:</strong> {{ habit.periodicity }}</p>
-    <p><strong>Erstellt am:</strong> {{ habit.created_at }}</p>
-    <p><strong>Nächster Fälligkeitstag:</strong> {{ habit.due_date or '–' }}</p>
+    <p><strong>Periodicity:</strong> {{ habit.periodicity }}</p>
+    <p><strong>Created on:</strong> {{ habit.created_at }}</p>
+    <p><strong>Next due date:</strong> {{ habit.due_date or '–' }}</p>
 </div>
 
 <hr>
 
-<h3>Geplante Tage</h3>
+<h3>Planned Days</h3>
 <input type="text" id="habit_calendar" readonly>
 
 <script>
+const selectedDates = JSON.parse('{{ selected_dates | tojson | safe }}');
+
 flatpickr("#habit_calendar", {
     mode: "multiple",
     dateFormat: "Y-m-d",
-    defaultDate: {{ selected_dates | tojson }},
-    locale: "de",
-    clickOpens: false, 
+    defaultDate: selectedDates,
+    locale: "en",
+    clickOpens: false,
     disableMobile: true
 });
+
 </script>
 
 <hr>
 
-<h3>Erledigungen</h3>
+<h3>Completions</h3>
 {% if completions %}
     <ul>
     {% for c in completions %}
@@ -34,14 +37,14 @@ flatpickr("#habit_calendar", {
     {% endfor %}
     </ul>
 {% else %}
-    <p>Noch keine Erledigungen.</p>
+    <p>No completions yet.</p>
 {% endif %}
 
-<form action="{{ url_for('delete_habit_route', habit_id=habit.id) }}" method="POST" onsubmit="return confirm('Willst du dieses Habit wirklich löschen?');">
-    <button type="submit" class="btn btn-danger">Habit löschen</button>
+<form action="{{ url_for('delete_habit_route', habit_id=habit.id) }}" onsubmit="return confirm('Do you really want to delete this habit?');">
+    <button type="submit" class="btn btn-danger">Delete Habit</button>
 </form>
 <form action="{{ url_for('edit_habit', habit_id=habit.id) }}">
-    <button type="submit" class="btn btn-danger">Habit bearbeiten</button>
+    <button type="submit" class="btn btn-danger">Edit Habit</button>
 </form>
 
 

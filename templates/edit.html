@@ -1,36 +1,39 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Habit bearbeiten</h2>
+<h2>Edit Habit</h2>
 
 <form method="post">
     <label for="name">Name:</label>
     <input type="text" id="name" name="name" value="{{ habit['name'] }}" required>
 
-    <label for="periodicity">Wiederholung:</label>
+    <label for="periodicity">Recurrence:</label>
     <select id="periodicity" name="periodicity" required>
-        <option value="daily" {% if habit['periodicity'] == 'daily' %}selected{% endif %}>Täglich</option>
-        <option value="weekly" {% if habit['periodicity'] == 'weekly' %}selected{% endif %}>Wöchentlich</option>
-        <option value="monthly" {% if habit['periodicity'] == 'monthly' %}selected{% endif %}>Monatlich</option>
-        <option value="yearly" {% if habit['periodicity'] == 'yearly' %}selected{% endif %}>Jährlich</option>
+        <option value="daily" {% if habit['periodicity'] == 'daily' %}selected{% endif %}>Daily</option>
+        <option value="weekly" {% if habit['periodicity'] == 'weekly' %}selected{% endif %}>Weekly</option>
+        <option value="monthly" {% if habit['periodicity'] == 'monthly' %}selected{% endif %}>Monthly</option>
+        <option value="yearly" {% if habit['periodicity'] == 'yearly' %}selected{% endif %}>Yearly</option>
     </select>
 
     <div id="calendar_container" style="margin-top: 20px;">
-        <label for="habit_calendar">Kalender:</label>
+        <label for="habit_calendar">Calendar:</label>
         <input type="text" id="habit_calendar" name="dates[]" class="calendar" />
     </div>
 
-    <button type="submit" class="btn">Änderungen speichern</button>
+    <button type="submit" class="btn">Save Changes</button>
 </form>
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
+    const selectedDates = JSON.parse('{{ selected_dates | tojson | safe }}');
+    
     flatpickr("#habit_calendar", {
         mode: "multiple",
         dateFormat: "Y-m-d",
-        locale: "de",
-        defaultDate: {{ selected_dates|tojson }},
+        locale: "en",
+        defaultDate: selectedDates,
     });
 });
 </script>
+
 
 {% endblock %}

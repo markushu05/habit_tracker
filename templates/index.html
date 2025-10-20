@@ -1,17 +1,17 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Alle Habits</h1>
+<h1>All Habits</h1>
 
 <table id="habitTable" border="1">
   <thead>
     <tr>
       <th onclick="sortTable(0)">Name ⬍</th>
-      <th onclick="sortTable(1)">Periodizität ⬍</th>
+      <th onclick="sortTable(1)">Periodicity ⬍</th>
       <th>Details</th>
-      <th onclick="sortTable(3)">Fällig ⬍</th>
+      <th onclick="sortTable(3)">Due ⬍</th>
       <th onclick="sortTable(4)">Status ⬍</th>
       <th onclick="sortTable(5)">Streak ⬍</th>
-      <th>Aktionen</th>
+      <th>Actions</th>
     </tr>
   </thead>
   <tbody>
@@ -23,16 +23,16 @@
       <td>{{ h["due_date"] }}</td>
       <td>
         {% if h["completed"] %}
-          ✅ Eingehalten
+          ✅ Completed
         {% else %}
-          ❌ Gebrochen
+          ❌ Broken
         {% endif %}
       </td>
       <td>{{ h["current_streak"] }}</td>
       <td>
-        <a href="{{ url_for('complete', habit_id=h['id']) }}">✅ Erledigt</a>
-        <a href="{{ url_for('delete_habit_route', habit_id=h['id']) }}">🗑️ Löschen</a>
-        <a href="{{ url_for('edit_habit', habit_id=h['id']) }}">✏️ Bearbeiten</a>
+        <a href="{{ url_for('complete', habit_id=h['id']) }}">✅ Complete</a>
+        <a href="{{ url_for('delete_habit_route', habit_id=h['id']) }}">🗑️ Delete</a>
+        <a href="{{ url_for('edit_habit', habit_id=h['id']) }}">✏️ Edit</a>
       </td>
     </tr>
     {% endfor %}
@@ -40,15 +40,15 @@
 </table>
 
 <script>
-console.log("Sortierfunktion geladen!");
+console.log("Sort function loaded!");
 
 function sortTable(columnIndex) {
-  console.log("Sortiere Spalte:", columnIndex);
+  console.log("Sorting column:", columnIndex);
   const table = document.getElementById("habitTable");
   const tbody = table.tBodies[0];
   const rows = Array.from(tbody.rows);
 
-  // Prüfen, ob bereits sortiert wurde → Richtung umkehren
+  // Check if already sorted → reverse direction
   const currentSorted = table.getAttribute("data-sorted-column");
   const currentDirection = table.getAttribute("data-sort-direction");
   let direction = "asc";
@@ -57,27 +57,27 @@ function sortTable(columnIndex) {
     direction = "desc";
   }
 
-  // Speichern, welche Spalte & Richtung aktuell aktiv ist
+  // Save current sorted column & direction
   table.setAttribute("data-sorted-column", columnIndex);
   table.setAttribute("data-sort-direction", direction);
 
-  // Hilfsfunktion: Datentyp erkennen
+  // Helper function: detect data type
   function parseValue(val) {
     if (!val) return "";
     val = val.trim();
 
-    // ✅ Emojis in Zahlen umwandeln (für Status-Spalte)
+    // ✅ Convert emojis to numbers (for Status column)
     if (val.includes("✅")) return 1;
     if (val.includes("❌")) return 0;
 
-    // ⏰ Datumswerte erkennen
+    // ⏰ Detect dates
     const date = Date.parse(val);
     if (!isNaN(date)) return date;
 
-    // 🔢 Zahlen erkennen
+    // 🔢 Detect numbers
     if (!isNaN(val)) return parseFloat(val);
 
-    // 🔤 Sonst Text (kleingeschrieben)
+    // 🔤 Otherwise, text (lowercase)
     return val.toLowerCase();
   }
 
@@ -92,7 +92,7 @@ function sortTable(columnIndex) {
     return 0;
   });
 
-  // Alte Zeilen löschen & neue einfügen
+  // Remove old rows & append sorted rows
   tbody.innerHTML = "";
   rows.forEach(row => tbody.appendChild(row));
 }
