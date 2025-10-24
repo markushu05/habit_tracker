@@ -22,10 +22,12 @@
       <td><a href="{{ url_for('habit_detail', habit_id=h['id']) }}">🔍 Details</a></td>
       <td>{{ h["due_date"] }}</td>
       <td>
-        {% if h["completed"] %}
+        {% if h.completed == 1 %}
           ✅ Completed
-        {% else %}
+        {% elif h.completed == 2 %}
           ❌ Broken
+        {% else %}
+          ⚪ Open
         {% endif %}
       </td>
       <td>{{ h["current_streak"] }}</td>
